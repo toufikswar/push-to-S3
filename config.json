@@ -1,0 +1,6 @@
+{
+  "bucket_name": "",
+  "json_schema": "schema.json",
+  "json_folder": "path/to/json/folder",
+  "meta_folder": "path/to/meta/folder"
+}

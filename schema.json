@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/content.schema.json",
+  "type": "object",
+  "properties": {
+    "library_uuid": {
+      "description": "A UUID for the Content element",
+      "type": "string"
+    },
+    "min_mtp_version": {
+      "description": "The minimum working Product version",
+      "type": "number"
+    },
+    "latest_version": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "date": {
+          "type": ["string", "null"]
+        },
+        "comment": {
+          "type": "string"
+        }
+      }
+    },
+    "version_history": {
+      "description": "A history of the different versions released",
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "name": {
+      "description": "The name of the content to be shown in the UI",
+      "type": "string"
+    },
+    "description": {
+      "description": "A description of the content to be shown in the UI",
+      "type": "string"
+    },
+    "type": {
+      "description": "The type of the content i.e act, alert or dashboard"
+    },
+    "library_type": {
+      "description": "The Pack names that this content belongs to",
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+ },
+ "required": ["library_uuid", "min_mtp_version", "latest_version", "version_history", "name", "description",
+   "type", "library_type"]
+}
