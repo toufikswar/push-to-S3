@@ -2,3 +2,5 @@
 .idea/
 /data
 dev.json
+venv/
+output/

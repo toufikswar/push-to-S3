@@ -1,7 +1,10 @@
+import pathlib
+
 import boto3
 import os
 import json
 import argparse
+import shutil
 
 from pathlib import Path
 from jsonschema import validate, ValidationError
@@ -59,6 +62,8 @@ def main():
         df = pd.read_excel(args.mapping_file)
 
     for index, row in df.iterrows():
+        if not pathlib.Path(row['METADATA']).exists():  # if no metadata file we go to next file
+            continue
         with open(row['METADATA']) as json_file:
             data = json.load(json_file)
             try:
@@ -95,6 +100,13 @@ def main():
                             }
                     }
                 )
+
+                # Move both json and metadata file when successfully processed
+                json_filename = os.path.split(row['JSON'])[1]
+                meta_filename = os.path.split(row['METADATA'])[1]
+                shutil.move(row['JSON'], "output/" + json_filename)
+                shutil.move(row['METADATA'], "output/" + meta_filename)
+
             except S3UploadFailedError as S3UploadEx:
                 print(S3UploadEx)
                 continue
