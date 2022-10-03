@@ -5,6 +5,7 @@ import os
 import json
 import argparse
 import shutil
+import logging
 
 from pathlib import Path
 from jsonschema import validate, ValidationError
@@ -12,6 +13,7 @@ from boto3.exceptions import S3UploadFailedError
 import pandas as pd
 
 from utils import load_config
+from classes.logger import Logger
 
 
 def main():
@@ -28,28 +30,33 @@ def main():
     # Load the config passed as argument
     config = load_config(args.config)
 
+    logger = Logger(logging.DEBUG)
+    logger.set_handler(file=True)
+    logger.logger.info("Initializing Push to S3")
+
     s3 = boto3.client('s3')  # Create an S3 client
     response = s3.list_buckets()  # get the S3 bucket list
     bucket_list = [bucket_dict.get('Name') for bucket_dict in response.get('Buckets')]  # select bucket names only
 
-    # Exit if bucket not found in S3
-    if config['bucket_name'] not in bucket_list:
-        print(f"Bucket {args.bucket} not found in S3")
+    if config['bucket_name'] not in bucket_list:  # Exit if bucket not found in S3
+        logger.logger.error(f"Bucket {config['bucket_name']} not found in S3. Program will close")
+        #  print(f"Bucket {args.bucket} not found in S3")
         exit(1)
-    # Exit if the JSON schema doesn't exist
-    if not Path(config['json_schema']).exists():
-        print("Invalid path for the JSON schema. Program will close.")
+    if not Path(config['json_schema']).exists():  # Exit if the JSON schema doesn't exist
+        logger.logger.error("Invalid path for the JSON schema. Program will close.")
         exit(1)
-    # Load JSON Schema for validation
-    with open(config['json_schema']) as json_file:
+
+    with open(config['json_schema']) as json_file:  # Load JSON Schema for validation
+        logger.logger.debug("Loading validation schema")
         schema = json.load(json_file)
+    json_list = [(Path(file).stem, os.path.join(root, file)) for root, dirs, files in os.walk(config['json_folder'])
+                 for file in files if file.endswith(".json")]
+    print(json_list)
+    meta_list = [os.path.join(root, file) for root, dirs, files in os.walk(config['meta_folder'])
+                 for file in files if file.endswith(".json")]
+    print(meta_list)
 
-    json_list = [(Path(file).stem, root + "/" + file) for root, dirs, files in os.walk(config['json_folder'])
-                 for file in files]
-    meta_list = [root + "/" + file for root, dirs, files in os.walk(config['meta_folder'])
-                 for file in files]
-
-    # In case no mapping file is provided, create one based one JSON and METADATA folders
+    # In case no mapping file is provided, create one based 2 folders, JSON and METADATA, provided in config file
     if not args.mapping_file:
         results = []
         for json_item in json_list:
@@ -63,56 +70,64 @@ def main():
 
     for index, row in df.iterrows():
         if not pathlib.Path(row['METADATA']).exists():  # if no metadata file we go to next file
+            logger.logger.error(f"Metadata file {row['METADATA']} not found. Going to next file.")
             continue
-        with open(row['METADATA']) as json_file:
-            data = json.load(json_file)
-            try:
-                validate(instance=data, schema=schema)
-            except ValidationError as ValError:
-                print(ValError)
-            else:
-                print(row['METADATA'] + " validated successfully")
 
+        with open(row['METADATA']) as json_file:
+            meta_data = json.load(json_file)
             try:
+                validate(instance=meta_data, schema=schema)
+            except ValidationError as ValError:
+                logger.logger.error(f"Cannot validate file : {ValidationError}")
+            else:
+                logger.logger.debug(f"Validated JSON schema for : {row['JSON']}")
+                #print(row['METADATA'] + " validated successfully")
+            try:
+                logger.logger.debug(f"Uploading file {row['JSON']}")
                 s3.upload_file(
                     Filename=row['JSON'],
                     Bucket=config['bucket_name'],
-                    Key=data.get('name'),
+                    Key=meta_data.get('name'),
                     ExtraArgs={
                         'Metadata':
                             {
-                                'library_uuid': json.dumps(data.get('library_uuid'),
+                                'library_uuid': json.dumps(meta_data.get('library_uuid'),
                                                            separators=(',', ":")),
-                                "min_mtp_version": json.dumps(data.get('min_mtp_version'),
+                                "min_mtp_version": json.dumps(meta_data.get('min_mtp_version'),
                                                               separators=(',', ":")),
-                                'latest_version': json.dumps(data.get('latest_version'),
+                                'latest_version': json.dumps(meta_data.get('latest_version'),
                                                              separators=(',', ":")),
-                                'version_history': json.dumps(data.get('version_history'),
+                                'version_history': json.dumps(meta_data.get('version_history'),
                                                               separators=(',', ":")),
-                                'name': json.dumps(data.get('name'),
+                                'name': json.dumps(meta_data.get('name'),
                                                    separators=(',', ":")),
-                                'description': json.dumps(data.get("description").replace("\n", ""),
+                                'description': json.dumps(meta_data.get("description").replace("\n", ""),
                                                           separators=(',', ":")),
-                                'type': json.dumps(data.get('type'),
+                                'type': json.dumps(meta_data.get('type'),
                                                    separators=(',', ":")),
-                                'library_type': json.dumps(data.get('library_type'),
+                                'library_type': json.dumps(meta_data.get('library_type'),
                                                            separators=(',', ":"))
                             }
                     }
                 )
 
                 # Move both json and metadata file when successfully processed
+                """
                 json_filename = os.path.split(row['JSON'])[1]
                 meta_filename = os.path.split(row['METADATA'])[1]
                 shutil.move(row['JSON'], "output/" + json_filename)
                 shutil.move(row['METADATA'], "output/" + meta_filename)
+                """
 
             except S3UploadFailedError as S3UploadEx:
-                print(S3UploadEx)
+                logger.logger.error(f"Failed to upload file : {S3UploadEx}")
                 continue
             except Exception as ex:
-                print(ex)
+                logger.logger.error(f"Failed to upload file : {ex}")
                 continue
+            else:
+                logger.logger.info(f"Successfully uploaded file : {row['JSON']} and its metadata")
+
 
 
 # Press the green button in the gutter to run the script.
