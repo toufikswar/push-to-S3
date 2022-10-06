@@ -49,8 +49,11 @@
       "items": {
         "type": "object"
       }
+    },
+    "dependencies": {
+      "type": "object"
     }
- },
+  },
  "required": ["library_uuid", "min_mtp_version", "latest_version", "version_history", "name", "description",
    "type", "library_type"]
 }
