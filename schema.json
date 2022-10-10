@@ -18,7 +18,7 @@
           "type": "string"
         },
         "date": {
-          "type": ["string", "null"]
+          "type": "string"
         },
         "comment": {
           "type": "string"
@@ -29,7 +29,18 @@
       "description": "A history of the different versions released",
       "type": "array",
       "items": {
-        "type": "object"
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
       }
     },
     "name": {
@@ -41,19 +52,29 @@
       "type": "string"
     },
     "type": {
-      "description": "The type of the content i.e act, alert or dashboard"
+      "description": "The type of the content i.e act, alert or dashboard",
+      "type": "string"
     },
-    "library_type": {
+    "library_pack": {
       "description": "The Pack names that this content belongs to",
       "type": "array",
       "items": {
-        "type": "object"
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "redirectURL": {
+            "type": "string"
+          }
+        }
       }
     },
     "dependencies": {
+      "description": "The dependencies that are linked to the pack e.g. alerts, campaigns, etc.",
       "type": "object"
     }
   },
  "required": ["library_uuid", "min_mtp_version", "latest_version", "version_history", "name", "description",
-   "type", "library_type"]
+   "type", "library_pack"]
 }

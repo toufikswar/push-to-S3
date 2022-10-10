@@ -4,3 +4,7 @@
 dev.json
 venv/
 output/
+__pycache__/
+classes/__pycache__/
+logs/*.log
+
