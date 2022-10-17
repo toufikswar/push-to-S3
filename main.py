@@ -72,50 +72,37 @@ def main():
         if not pathlib.Path(row['METADATA']).exists():  # if no metadata file we go to next file
             logger.logger.error(f"Metadata file {row['METADATA']} not found. Going to next file.")
             continue
-
         with open(row['METADATA']) as json_file:
             meta_data = json.load(json_file)
             try:
                 validate(instance=meta_data, schema=schema)
             except ValidationError as ValError:
-                logger.logger.error(f"Cannot validate file : {ValidationError}")
+                logger.logger.error(f"Cannot validate file due to : {ValError}")
             else:
                 logger.logger.debug(f"Validated JSON schema for : {row['JSON']}")
-                #print(row['METADATA'] + " validated successfully")
             try:
                 logger.logger.debug(f"Uploading file {row['JSON']}")
-
-                #s3.upload_file(
                 with open(row['JSON'], "rb") as f:
                     bucket.put_object(
-                        Body=f,#row['JSON'],
-                        Key=Path(row['JSON']).stem + ".json",
-                        #Key=open(row['JSON'], 'rb').read(),
+                        Body=f,  # read the file and load it
+                        Key=os.path.split(row['JSON'])[1],  # Path(row['JSON']).stem + ".json",
                         ContentType="application/json",
                         Metadata={
                             'library_uuid': meta_data.get('library_uuid').strip(),
-                            "min_mtp_version": json.dumps(meta_data.get('min_mtp_version'),
-                                                          separators=(',', ":")),
-                            'latest_version': json.dumps(meta_data.get('latest_version'),
-                                                         separators=(',', ":")),
-                            'version_history': json.dumps(meta_data.get('version_history'),
-                                                          separators=(',', ":")),
+                            "min_mtp_version": json.dumps(meta_data.get('min_mtp_version'), separators=(',', ":")),
+                            'latest_version': json.dumps(meta_data.get('latest_version'), separators=(',', ":")),
+                            'version_history': json.dumps(meta_data.get('version_history'), separators=(',', ":")),
                             'name': meta_data.get('name').strip(),
                             'description': meta_data.get("description").replace("\n", "").strip(),
-                            'type': "act".strip(), # json.dumps(meta_data.get('type'),
-                                               #separators=(',', ":")),
-                            'library_packs': json.dumps(meta_data.get('library_pack'),
-                                                       separators=(',', ":"))
+                            'type': "act".strip(),  # TODO change for different content types
+                            'library_packs': json.dumps(meta_data.get('library_packs'), separators=(',', ":"))
                         }
                     )
-
                 # Move both json and metadata file when successfully processed
-                
                 #json_filename = os.path.split(row['JSON'])[1]
                 #meta_filename = os.path.split(row['METADATA'])[1]
                 #shutil.move(row['JSON'], "output/" + json_filename)
                 #shutil.move(row['METADATA'], "output/" + meta_filename)
-
             except S3UploadFailedError as S3UploadEx:
                 logger.logger.error(f"Failed to upload file : {S3UploadEx}")
                 continue
@@ -126,7 +113,5 @@ def main():
                 logger.logger.info(f"Successfully uploaded file : {row['JSON']} and its metadata")
 
 
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()

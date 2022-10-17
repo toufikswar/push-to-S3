@@ -55,7 +55,7 @@
       "description": "The type of the content i.e act, alert or dashboard",
       "type": "string"
     },
-    "library_pack": {
+    "library_packs": {
       "description": "The Pack names that this content belongs to",
       "type": "array",
       "items": {
@@ -76,5 +76,5 @@
     }
   },
  "required": ["library_uuid", "min_mtp_version", "latest_version", "version_history", "name", "description",
-   "type", "library_pack"]
+   "type", "library_packs"]
 }
