@@ -9,7 +9,7 @@
     },
     "min_mtp_version": {
       "description": "The minimum working Product version",
-      "type": "number"
+      "type": "string"
     },
     "latest_version": {
       "type": "object",
